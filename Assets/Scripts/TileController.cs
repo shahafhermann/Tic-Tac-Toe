@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class TileController : MonoBehaviour
 {
-
     void Awake()
     {
         // tiles[0, 0] = GameObject.Find("Tile_NW").GetComponent<SpriteRenderer>();
@@ -37,7 +36,7 @@ public class TileController : MonoBehaviour
     private void MarkTile(Collider2D tileCollider)
     {
         var (i, j) = GetTileLocation(tileCollider.name);  // get tile's matrix location
-        if (GameManager.instance._tiles[i, j] != 0) return;  // Already marked, do nothing
+        if (GameManager.instance.tiles[i, j] != 0) return;  // Already marked, do nothing
 
         var gameState = GameManager.instance.gameState;
         Sprite sprite;
@@ -60,7 +59,7 @@ public class TileController : MonoBehaviour
         }
 
         tileCollider.GetComponent<SpriteRenderer>().sprite = sprite;
-        GameManager.instance._tiles[i, j] = mark;
+        GameManager.instance.tiles[i, j] = mark;
         GameManager.instance.EndTurn(i, j, mark);
     }
 

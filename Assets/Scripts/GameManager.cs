@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor.UI;
 using UnityEngine;
+using Random = System.Random;
 
 public class GameManager : MonoBehaviour 
 {
@@ -10,23 +11,45 @@ public class GameManager : MonoBehaviour
     public static GameManager instance;
 
     public GameState gameState;
-    public int[,] _tiles = new int[3, 3];
+    public int[,] tiles = new int[3, 3];
+    public GameObject[,] tileObjects = new GameObject[3, 3];
     public static event Action<GameState> OnGameStateChange;
+    private SpriteRenderer _leftTurnTile;
+    private SpriteRenderer _rightTurnTile;
 
     private int _moveCount = 0;
     private int _winCondition = 0;
 
-    [Header("Token Sprites")] 
+    private bool newGame = true;
+    private bool xIsRight = true;
+
+    [Header("Stuff I Need")] 
     public Sprite xSprite;
     public Sprite oSprite;
     public Sprite emptyToken;
-    
+    public Sprite xTurnSprite;
+    public Sprite oTurnSprite;
+    public Sprite emptyTurnSprite;
+    public Material xTurnMaterial;
+    public Material oTurnMaterial;
     public Sprite background;
     public ButtonEditor buildAssetBundleButton;
-    
+
     private void Awake() 
     {
         instance = this;
+        
+        tileObjects[0, 0] = GameObject.Find("Tile_NW");
+        tileObjects[0, 1] = GameObject.Find("Tile_N");
+        tileObjects[0, 2] = GameObject.Find("Tile_NE");
+        tileObjects[1, 0] = GameObject.Find("Tile_W");
+        tileObjects[1, 1] = GameObject.Find("Tile_M");
+        tileObjects[1, 2] = GameObject.Find("Tile_E");
+        tileObjects[2, 0] = GameObject.Find("Tile_SW");
+        tileObjects[2, 1] = GameObject.Find("Tile_S");
+        tileObjects[2, 2] = GameObject.Find("Tile_SE");
+        _leftTurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
+        _rightTurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
     }
     
     private void Start() 
@@ -39,11 +62,6 @@ public class GameManager : MonoBehaviour
         
     }
 
-    public int GetMoveCount()
-    {
-        return _moveCount;
-    }
-
     public void UpdateGameState(GameState newState) 
     {
         gameState = newState;
@@ -53,10 +71,10 @@ public class GameManager : MonoBehaviour
             case GameState.Menu:
                 break;
             case GameState.XTurn:
-                _moveCount++;
+                HandleXTurn();
                 break;
             case GameState.OTurn:
-                _moveCount++;
+                HandleOTurn();
                 break;
             case GameState.EndGame:
                 HandleEndGame();
@@ -66,6 +84,45 @@ public class GameManager : MonoBehaviour
         }
 
         OnGameStateChange?.Invoke(newState);
+    }
+
+    private void HandleOTurn()
+    {
+        _moveCount++;
+        SwapTextures(xIsRight);
+    }
+
+    private void HandleXTurn()
+    {
+        _moveCount++;
+
+        if (newGame)  // Randomize which player will play as X
+        {
+            Random rnd = new Random();
+            var randomResult = rnd.Next(1, 3);
+            xIsRight = randomResult == 1;
+            newGame = false;
+        }
+        
+        SwapTextures(xIsRight);
+    }
+
+    private void SwapTextures(bool xSide)
+    {
+        if (xSide)  // Player 1 (right) is X
+        {
+            _leftTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
+            // _leftTurnTile.material = oTurnMaterial;
+            _rightTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
+            // _rightTurnTile.material = xTurnMaterial;
+        }
+        else  // Player 2 (left) is X
+        {
+            _leftTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
+            // _leftTurnTile.material = xTurnMaterial;
+            _rightTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
+            // _rightTurnTile.material = oTurnMaterial;
+        }
     }
 
     public void EndTurn(int i, int j, int mark)
@@ -82,7 +139,7 @@ public class GameManager : MonoBehaviour
         // Check row
         for (var i = 0; i < 3; i++)
         {
-            if (GameManager.instance._tiles[x, i] != mark) 
+            if (tiles[x, i] != mark) 
                 break;
             if (i == 2)
                 return 1;
@@ -91,7 +148,7 @@ public class GameManager : MonoBehaviour
         // Check column
         for (var i = 0; i < 3; i++)
         {
-            if (GameManager.instance._tiles[i, y] != mark) 
+            if (tiles[i, y] != mark) 
                 break;
             if (i == 2)
                 return 1;
@@ -102,7 +159,7 @@ public class GameManager : MonoBehaviour
         {
             for (var i = 0; i < 3; i++)
             {
-                if (GameManager.instance._tiles[i, i] != mark) 
+                if (tiles[i, i] != mark) 
                     break;
                 if (i == 2)
                     return 1;
@@ -114,7 +171,7 @@ public class GameManager : MonoBehaviour
         {
             for (var i = 0; i < 3; i++)
             {
-                if (GameManager.instance._tiles[i, 2 - i] != mark) 
+                if (tiles[i, 2 - i] != mark) 
                     break;
                 if (i == 2)
                     return 1;
@@ -122,7 +179,7 @@ public class GameManager : MonoBehaviour
         }
 
         // Check draw
-        if(GameManager.instance.GetMoveCount() == 9)
+        if(_moveCount == 9)
             return -1;
 
         return 0;
@@ -142,6 +199,5 @@ public enum GameState
     Menu,
     XTurn,
     OTurn,
-    EndTurn,
     EndGame
 }

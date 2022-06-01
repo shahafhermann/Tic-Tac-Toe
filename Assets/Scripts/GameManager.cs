@@ -10,10 +10,11 @@ public class GameManager : MonoBehaviour
     public static GameManager instance;
 
     public GameState gameState;
+    public int[,] _tiles = new int[3, 3];
     public static event Action<GameState> OnGameStateChange;
-    
-    private int[,] _tiles = new int[3, 3];
-    private int moveCount = 0;
+
+    private int _moveCount = 0;
+    private int _winCondition = 0;
 
     [Header("Token Sprites")] 
     public Sprite xSprite;
@@ -28,19 +29,22 @@ public class GameManager : MonoBehaviour
         instance = this;
     }
     
-    // Start is called before the first frame update
     private void Start() 
     {
         UpdateGameState(GameState.XTurn);
     }
 
-    // Update is called once per frame
     void Update()
     {
         
     }
 
-    private void UpdateGameState(GameState newState) 
+    public int GetMoveCount()
+    {
+        return _moveCount;
+    }
+
+    public void UpdateGameState(GameState newState) 
     {
         gameState = newState;
 
@@ -49,10 +53,13 @@ public class GameManager : MonoBehaviour
             case GameState.Menu:
                 break;
             case GameState.XTurn:
+                _moveCount++;
                 break;
             case GameState.OTurn:
+                _moveCount++;
                 break;
             case GameState.EndGame:
+                HandleEndGame();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(newState), newState, null);
@@ -61,79 +68,33 @@ public class GameManager : MonoBehaviour
         OnGameStateChange?.Invoke(newState);
     }
 
-    public void MarkTile(Collider2D tileCollider)
+    public void EndTurn(int i, int j, int mark)
     {
-        moveCount++;
-        
-        var (i, j) = GetTileLocation(tileCollider.name); // get tile's matrix location
-        if (_tiles[i, j] != 0) return; // Already marked, do nothing
-        
-        switch (gameState)
-        {
-            case GameState.XTurn:
-                tileCollider.GetComponent<SpriteRenderer>().sprite = xSprite;
-                _tiles[i, j] = 1;
-                CheckWinCondition(i, j, 1);
-                UpdateGameState(GameState.OTurn);
-                break;
-            case GameState.OTurn:
-                tileCollider.GetComponent<SpriteRenderer>().sprite = oSprite;
-                _tiles[i, j] = -1;
-                CheckWinCondition(i, j, -1);
-                UpdateGameState(GameState.XTurn);
-                break;
-            default:
-                Debug.Log("While marking the tile, the GameState wasn't X or O.");
-                break;
-        }
+        _winCondition = CheckWinCondition(i, j, mark);
+        if (_winCondition == 0)
+            UpdateGameState(gameState == GameState.XTurn ? GameState.OTurn : GameState.XTurn);
+        else // GameState not updated - The game ended
+            UpdateGameState(GameState.EndGame);
     }
-
-    private static (int i, int j) GetTileLocation(string tileName)
+    
+    private int CheckWinCondition(int x, int y, int mark)
     {
-        switch (tileName)
-        {
-            case "Tile_NW":
-                return (0, 0);
-            case "Tile_N":
-                return (0, 1);
-            case "Tile_NE":
-                return (0, 2);
-            case "Tile_W":
-                return (1, 0);
-            case "Tile_M":
-                return (1, 1);
-            case "Tile_E":
-                return (1, 2);
-            case "Tile_SW":
-                return (2, 0);
-            case "Tile_S":
-                return (2, 1);
-            case "Tile_SE":
-                return (2, 2);
-            default:
-                Debug.Log("While marking the tile, the GameState wasn't X or O.");
-                return (-1, -1);
-        }
-    }
-
-    private void CheckWinCondition(int x, int y, int mark)
-    {
-        // Check column
-        for (var i = 0; i < 3; i++)
-        {
-            if (_tiles[x, i] != mark) 
-                break;
-            if (i == 2) 
-                Debug.Log(mark + " Wins!"); // Win for mark
-        }
-        
         // Check row
         for (var i = 0; i < 3; i++)
         {
-            if (_tiles[i, y] != mark) 
+            if (GameManager.instance._tiles[x, i] != mark) 
                 break;
-            if (i == 2) 
-                Debug.Log(mark + " Wins!"); // Win for mark
+            if (i == 2)
+                return 1;
+        }
+        
+        // Check column
+        for (var i = 0; i < 3; i++)
+        {
+            if (GameManager.instance._tiles[i, y] != mark) 
+                break;
+            if (i == 2)
+                return 1;
         }
         
         // Check diagonal
@@ -141,10 +102,10 @@ public class GameManager : MonoBehaviour
         {
             for (var i = 0; i < 3; i++)
             {
-                if (_tiles[i, i] != mark) 
+                if (GameManager.instance._tiles[i, i] != mark) 
                     break;
-                if (i == 2) 
-                    Debug.Log(mark + " Wins!"); // Win for mark
+                if (i == 2)
+                    return 1;
             }
         }
             
@@ -153,16 +114,26 @@ public class GameManager : MonoBehaviour
         {
             for (var i = 0; i < 3; i++)
             {
-                if (_tiles[i, 2 - i] != mark) 
+                if (GameManager.instance._tiles[i, 2 - i] != mark) 
                     break;
-                if (i == 2) 
-                    Debug.Log(mark + " Wins!"); // Win for mark
+                if (i == 2)
+                    return 1;
             }
         }
 
         // Check draw
-        if(moveCount == 9) 
-            Debug.Log("Draw!"); // draw
+        if(GameManager.instance.GetMoveCount() == 9)
+            return -1;
+
+        return 0;
+    }
+
+    private void HandleEndGame()
+    {
+        if (_winCondition == 1)
+            Debug.Log(_moveCount % 2 == 1 ? "X Won!" : "O Won!");
+        else
+            Debug.Log("Draw!");
     }
 }
 
@@ -171,5 +142,6 @@ public enum GameState
     Menu,
     XTurn,
     OTurn,
+    EndTurn,
     EndGame
 }

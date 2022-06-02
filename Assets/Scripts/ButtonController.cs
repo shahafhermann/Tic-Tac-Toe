@@ -6,6 +6,25 @@ using UnityEngine;
 public class ButtonController : MonoBehaviour
 {
     public Animator animator;
+
+    public void OnPvpPress()
+    {
+        GameManager.Instance.p1 = Player.Human;
+        GameManager.Instance.p2 = Player.Human;
+        GameManager.Instance.UpdateGameState(GameState.NewGame);
+    }
+    
+    public void OnPvcPress()
+    {
+        GameManager.Instance.p1 = Player.Human;
+        GameManager.Instance.p2 = Player.Computer;
+        GameManager.Instance.UpdateGameState(GameState.NewGame);
+    }
+
+    public void OnBackPress()
+    {
+        GameManager.Instance.UpdateGameState(GameState.Menu);
+    }
     
     public void OnUndoPress()
     {

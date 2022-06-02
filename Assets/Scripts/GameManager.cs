@@ -13,20 +13,21 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     public GameState gameState;
+    public Player p1;
+    public Player p2;
     public Stack Undo = new Stack();
     public int[,] tiles = new int[3, 3];
     public GameObject[,] tileObjects = new GameObject[3, 3];
     public static event Action<GameState> OnGameStateChange;
-    private SpriteRenderer _leftTurnTile;
-    private SpriteRenderer _rightTurnTile;
+    private SpriteRenderer _p2TurnTile;
+    private SpriteRenderer _p1TurnTile;
 
-    private int _moveCount = 0;
-    private int _winCondition = 0;
+    private int _moveCount;
+    private int _winCondition;
     private GameState _timeOutWinner;
-    private bool _newGame = true;
-    private bool _xIsRight = true;
-    private bool _timerRunning = false;
-    private bool _timeOut = false;
+    private int _xPlayer;
+    private bool _timerRunning;
+    private bool _timeOut;
     private float _timeRemaining;
     
     private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
@@ -40,23 +41,23 @@ public class GameManager : MonoBehaviour
     public Sprite xTurnSprite;
     public Sprite oTurnSprite;
     public Sprite emptyTurnSprite;
+    public Sprite human;
+    public Sprite computer;
     public Sprite background;
     public ButtonEditor buildAssetBundleButton;
-    
-
 
     private void Awake() 
     {
         Instance = this;
         
         SetTileMap();
-        _leftTurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
-        _rightTurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
+        _p2TurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
+        _p1TurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
     }
     
     private void Start()
     {
-        UpdateGameState(GameState.NewGame);
+        UpdateGameState(GameState.Menu);
     }
 
     public void UpdateGameState(GameState newState) 
@@ -71,10 +72,10 @@ public class GameManager : MonoBehaviour
                 HandleNewGame();
                 break;
             case GameState.XTurn:
-                HandleXTurn();
+                SwitchTurn(_xPlayer);
                 break;
             case GameState.OTurn:
-                HandleOTurn();
+                SwitchTurn(_xPlayer);
                 break;
             case GameState.EndGame:
                 HandleEndGame();
@@ -118,46 +119,31 @@ public class GameManager : MonoBehaviour
 
     private void HandleNewGame()
     {
-        _newGame = true;
         _moveCount = 0;
         _timerRunning = true;
         _timeOut = false;
         _timeRemaining = timer;
+        
+        // Randomize which player will play as X
+        Random rnd = new Random();
+        var randomResult = rnd.Next(1, 3);
+        _xPlayer = randomResult;
+        
         UpdateGameState(GameState.XTurn);
     }
 
-    private void HandleOTurn()
+    private void SwitchTurn(int xPlayer)
     {
         _moveCount++;
-        SwapTextures(_xIsRight);
-    }
-
-    private void HandleXTurn()
-    {
-        _moveCount++;
-
-        if (_newGame)  // Randomize which player will play as X
+        if (xPlayer == 1)  // Player1 plays X
         {
-            Random rnd = new Random();
-            var randomResult = rnd.Next(1, 3);
-            _xIsRight = randomResult == 1;
-            _newGame = false;
+            _p2TurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
+            _p1TurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
         }
-        
-        SwapTextures(_xIsRight);
-    }
-
-    private void SwapTextures(bool xSide)
-    {
-        if (xSide)  // X is played by the player on the right
+        else  // Player2 plays X
         {
-            _leftTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
-            _rightTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-        }
-        else  // X is played by the player on the left
-        {
-            _leftTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-            _rightTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
+            _p2TurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
+            _p1TurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
         }
     }
 
@@ -171,6 +157,10 @@ public class GameManager : MonoBehaviour
             UpdateGameState(GameState.EndGame);
     }
     
+    /**
+     * Check if any player won.
+     * Return 1 if a player won, -1 if it's a draw or 0 otherwise (Game hasn't ended)
+     */
     private int CheckWinCondition(int x, int y, int mark)
     {
         // Check row
@@ -224,15 +214,16 @@ public class GameManager : MonoBehaviour
 
     private void HandleEndGame()
     {
+        var oPlayer = (_xPlayer % 2) + 1;
         if (_timeOut)
         {
             switch (_timeOutWinner)
             {
                 case GameState.XTurn:
-                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, "2");
+                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, oPlayer);
                     break;
                 case GameState.OTurn:
-                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, "1");
+                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, _xPlayer);
                     break;
                 default:
                     UIManager.Instance.winnerText.text = DrawTextMsg;
@@ -242,7 +233,7 @@ public class GameManager : MonoBehaviour
         else
         {
             UIManager.Instance.winnerText.text = _winCondition == 1 ? 
-                string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? "1" : "2") : 
+                string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? _xPlayer : oPlayer) : 
                 DrawTextMsg;
         }
 
@@ -258,4 +249,10 @@ public enum GameState
     EndGame,
     NewGame,
     TimeOut
+}
+
+public enum Player
+{
+    Human,
+    Computer
 }

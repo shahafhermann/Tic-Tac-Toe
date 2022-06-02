@@ -37,7 +37,7 @@ public class UIManager : MonoBehaviour
             // _hud.SetActive(state == GameState.OTurn || state == GameState.XTurn);
             case GameState.NewGame:
                 hud.SetActive(true);
-                // menu.SetActive(false);
+                menu.SetActive(false);
                 endScreen.SetActive(false);
                 break;
             case GameState.EndGame:
@@ -46,7 +46,8 @@ public class UIManager : MonoBehaviour
                 break;
             case GameState.Menu:
                 hud.SetActive(false);
-                // menu.SetActive(true);
+                menu.SetActive(true);
+                endScreen.SetActive(false);
                 break;
         }
     }

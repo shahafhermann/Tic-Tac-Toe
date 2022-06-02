@@ -57,8 +57,9 @@ public class TileController : MonoBehaviour
                 Debug.Log("While marking the tile, the GameState wasn't X or O.");
                 break;
         }
-
+        
         tileCollider.GetComponent<SpriteRenderer>().sprite = sprite;
+        GameManager.Instance.Undo.Push(new Tuple<int, int>(i, j));
         GameManager.Instance.tiles[i, j] = mark;
         GameManager.Instance.EndTurn(i, j, mark);
     }
@@ -89,5 +90,11 @@ public class TileController : MonoBehaviour
                 Debug.Log("While marking the tile, the GameState wasn't X or O.");
                 return (-1, -1);
         }
+    }
+    
+    public static void ClearTile(int i, int j)
+    {
+        GameManager.Instance.tileObjects[i, j].GetComponent<SpriteRenderer>().sprite = GameManager.Instance.emptyToken;
+        GameManager.Instance.tiles[i, j] = 0;
     }
 }

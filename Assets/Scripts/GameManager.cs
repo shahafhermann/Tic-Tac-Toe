@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEditor.UI;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = System.Random;
 
 public class GameManager : MonoBehaviour 
@@ -12,6 +13,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     public GameState gameState;
+    public Stack Undo = new Stack();
     public int[,] tiles = new int[3, 3];
     public GameObject[,] tileObjects = new GameObject[3, 3];
     public static event Action<GameState> OnGameStateChange;
@@ -27,11 +29,7 @@ public class GameManager : MonoBehaviour
     private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
     private const string DrawTextMsg = "Draw!";
 
-    [Header("Setup")] 
-    public GameObject endScreen;
-    public GameObject hud;
-    public GameObject menu;
-    public TextMeshProUGUI winnerText;
+    [Header("Setup")]
     public Sprite xSprite;
     public Sprite oSprite;
     public Sprite emptyToken;
@@ -55,11 +53,6 @@ public class GameManager : MonoBehaviour
     private void Start() 
     {
         UpdateGameState(GameState.NewGame);
-    }
-
-    void Update()
-    {
-        
     }
 
     public void UpdateGameState(GameState newState) 
@@ -102,14 +95,14 @@ public class GameManager : MonoBehaviour
         tileObjects[2, 2] = GameObject.Find("Tile_SE");
     }
 
+    public void UpdateMoveCount(int step) { _moveCount += step; }
+
+    public int GetMoveCount() { return _moveCount; }
+
     private void HandleNewGame()
     {
         _newGame = true;
         _moveCount = 0;
-        Array.Clear(tiles, 0, 9);
-        hud.SetActive(true);
-        // menu.SetActive(false);
-        endScreen.SetActive(false);
         UpdateGameState(GameState.XTurn);
     }
 
@@ -214,17 +207,9 @@ public class GameManager : MonoBehaviour
 
     private void HandleEndGame()
     {
-        string msg = _winCondition == 1 ? 
+        UIManager.Instance.winnerText.text = _winCondition == 1 ? 
             string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? "1" : "2") : 
-            DrawTextMsg;
-        winnerText.text = msg;
-        ShowEndScreen();
-    }
-
-    private void ShowEndScreen()
-    {
-        hud.SetActive(false);
-        endScreen.SetActive(true);
+            DrawTextMsg;;
     }
 }
 

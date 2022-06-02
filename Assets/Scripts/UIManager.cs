@@ -14,6 +14,7 @@ public class UIManager : MonoBehaviour
     public GameObject menu;
     public TextMeshProUGUI winnerText;
     public Button undoButton;
+    public TextMeshProUGUI timerText;
     
     private void Awake()
     {
@@ -53,5 +54,29 @@ public class UIManager : MonoBehaviour
     void Update()
     {
         undoButton.interactable = GameManager.Instance.GetMoveCount() > 1;
+
+        if (GameManager.Instance.TimerRunning())
+        {
+            if (GameManager.Instance.GetTimeRemaining() > 0) {
+                GameManager.Instance.UpdateTimeRemaining(Time.deltaTime);
+                
+                if (GameManager.Instance.timer < 0)
+                    GameManager.Instance.timer = 0;
+
+                timerText.text = "00:" + Mathf.Ceil(GameManager.Instance.GetTimeRemaining() % 60).ToString("00");
+                if (GameManager.Instance.GetTimeRemaining() < 3) {
+                    timerText.color = new Color(1, 0.168f, 0.219f, 1);
+                }
+                else
+                {
+                    timerText.color = new Color(1, 1, 1, 1);
+                }
+            }
+            else
+            {
+                GameManager.Instance.TimeOut();
+                
+            }
+        }
     }
 }

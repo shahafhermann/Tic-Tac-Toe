@@ -61,7 +61,7 @@ public class TileController : MonoBehaviour
         tileCollider.GetComponent<SpriteRenderer>().sprite = sprite;
         GameManager.Instance.Undo.Push(new Tuple<int, int>(i, j));
         GameManager.Instance.tiles[i, j] = mark;
-        GameManager.Instance.EndTurn(i, j, mark);
+        GameManager.Instance.EndTurn(false, i, j, mark);
     }
 
     private static (int i, int j) GetTileLocation(string tileName)

@@ -22,24 +22,28 @@ public class GameManager : MonoBehaviour
 
     private int _moveCount = 0;
     private int _winCondition = 0;
-
+    private GameState _timeOutWinner;
     private bool _newGame = true;
     private bool _xIsRight = true;
-
+    private bool _timerRunning = false;
+    private bool _timeOut = false;
+    private float _timeRemaining;
+    
     private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
-    private const string DrawTextMsg = "Draw!";
+    private const string DrawTextMsg = "Draw";
 
-    [Header("Setup")]
+    [Header("Setup")] 
+    public float timer = 5f;
     public Sprite xSprite;
     public Sprite oSprite;
     public Sprite emptyToken;
     public Sprite xTurnSprite;
     public Sprite oTurnSprite;
     public Sprite emptyTurnSprite;
-    public Material xTurnMaterial;
-    public Material oTurnMaterial;
     public Sprite background;
     public ButtonEditor buildAssetBundleButton;
+    
+
 
     private void Awake() 
     {
@@ -50,7 +54,7 @@ public class GameManager : MonoBehaviour
         _rightTurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
     }
     
-    private void Start() 
+    private void Start()
     {
         UpdateGameState(GameState.NewGame);
     }
@@ -99,10 +103,26 @@ public class GameManager : MonoBehaviour
 
     public int GetMoveCount() { return _moveCount; }
 
+    public float GetTimeRemaining() { return _timeRemaining; }
+
+    public void UpdateTimeRemaining(float time) { _timeRemaining -= time;}
+    
+    public void TimeOut()
+    {
+        _timeOut = true;
+        _timeOutWinner = gameState;
+        UpdateGameState(GameState.EndGame);
+    }
+
+    public bool TimerRunning() { return _timerRunning; }
+
     private void HandleNewGame()
     {
         _newGame = true;
         _moveCount = 0;
+        _timerRunning = true;
+        _timeOut = false;
+        _timeRemaining = timer;
         UpdateGameState(GameState.XTurn);
     }
 
@@ -129,26 +149,23 @@ public class GameManager : MonoBehaviour
 
     private void SwapTextures(bool xSide)
     {
-        if (xSide)  // Player 1 (right) is X
+        if (xSide)  // X is played by the player on the right
         {
             _leftTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
-            // _leftTurnTile.material = oTurnMaterial;
             _rightTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-            // _rightTurnTile.material = xTurnMaterial;
         }
-        else  // Player 2 (left) is X
+        else  // X is played by the player on the left
         {
             _leftTurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-            // _leftTurnTile.material = xTurnMaterial;
             _rightTurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
-            // _rightTurnTile.material = oTurnMaterial;
         }
     }
 
-    public void EndTurn(int i, int j, int mark)
+    public void EndTurn(bool undo, int i = 0, int j = 0, int mark = 0)
     {
+        _timeRemaining = timer;
         _winCondition = CheckWinCondition(i, j, mark);
-        if (_winCondition == 0)
+        if (_winCondition == 0 || undo)
             UpdateGameState(gameState == GameState.XTurn ? GameState.OTurn : GameState.XTurn);
         else // GameState not updated - The game ended
             UpdateGameState(GameState.EndGame);
@@ -207,9 +224,29 @@ public class GameManager : MonoBehaviour
 
     private void HandleEndGame()
     {
-        UIManager.Instance.winnerText.text = _winCondition == 1 ? 
-            string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? "1" : "2") : 
-            DrawTextMsg;;
+        if (_timeOut)
+        {
+            switch (_timeOutWinner)
+            {
+                case GameState.XTurn:
+                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, "2");
+                    break;
+                case GameState.OTurn:
+                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, "1");
+                    break;
+                default:
+                    UIManager.Instance.winnerText.text = DrawTextMsg;
+                    break;
+            }
+        }
+        else
+        {
+            UIManager.Instance.winnerText.text = _winCondition == 1 ? 
+                string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? "1" : "2") : 
+                DrawTextMsg;
+        }
+
+        _timerRunning = false;
     }
 }
 
@@ -219,5 +256,6 @@ public enum GameState
     XTurn,
     OTurn,
     EndGame,
-    NewGame
+    NewGame,
+    TimeOut
 }

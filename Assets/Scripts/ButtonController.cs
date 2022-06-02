@@ -12,6 +12,7 @@ public class ButtonController : MonoBehaviour
         var (i, j) = (Tuple<int, int>) GameManager.Instance.Undo.Pop();
         TileController.ClearTile(i, j);
         GameManager.Instance.UpdateMoveCount(-1);
+        GameManager.Instance.EndTurn(true);
     }
 
     public void OnHintPress()

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEditor.UI;
 using UnityEngine;
 using Random = System.Random;
@@ -8,7 +9,7 @@ using Random = System.Random;
 public class GameManager : MonoBehaviour 
 {
     // Singleton, so I can easily grab it from anywhere in the project.
-    public static GameManager instance;
+    public static GameManager Instance;
 
     public GameState gameState;
     public int[,] tiles = new int[3, 3];
@@ -20,10 +21,17 @@ public class GameManager : MonoBehaviour
     private int _moveCount = 0;
     private int _winCondition = 0;
 
-    private bool newGame = true;
-    private bool xIsRight = true;
+    private bool _newGame = true;
+    private bool _xIsRight = true;
 
-    [Header("Stuff I Need")] 
+    private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
+    private const string DrawTextMsg = "Draw!";
+
+    [Header("Setup")] 
+    public GameObject endScreen;
+    public GameObject hud;
+    public GameObject menu;
+    public TextMeshProUGUI winnerText;
     public Sprite xSprite;
     public Sprite oSprite;
     public Sprite emptyToken;
@@ -37,24 +45,16 @@ public class GameManager : MonoBehaviour
 
     private void Awake() 
     {
-        instance = this;
+        Instance = this;
         
-        tileObjects[0, 0] = GameObject.Find("Tile_NW");
-        tileObjects[0, 1] = GameObject.Find("Tile_N");
-        tileObjects[0, 2] = GameObject.Find("Tile_NE");
-        tileObjects[1, 0] = GameObject.Find("Tile_W");
-        tileObjects[1, 1] = GameObject.Find("Tile_M");
-        tileObjects[1, 2] = GameObject.Find("Tile_E");
-        tileObjects[2, 0] = GameObject.Find("Tile_SW");
-        tileObjects[2, 1] = GameObject.Find("Tile_S");
-        tileObjects[2, 2] = GameObject.Find("Tile_SE");
+        SetTileMap();
         _leftTurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
         _rightTurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
     }
     
     private void Start() 
     {
-        UpdateGameState(GameState.XTurn);
+        UpdateGameState(GameState.NewGame);
     }
 
     void Update()
@@ -69,6 +69,9 @@ public class GameManager : MonoBehaviour
         switch (newState) 
         {
             case GameState.Menu:
+                break;
+            case GameState.NewGame:
+                HandleNewGame();
                 break;
             case GameState.XTurn:
                 HandleXTurn();
@@ -86,25 +89,49 @@ public class GameManager : MonoBehaviour
         OnGameStateChange?.Invoke(newState);
     }
 
+    private void SetTileMap()
+    {
+        tileObjects[0, 0] = GameObject.Find("Tile_NW");
+        tileObjects[0, 1] = GameObject.Find("Tile_N");
+        tileObjects[0, 2] = GameObject.Find("Tile_NE");
+        tileObjects[1, 0] = GameObject.Find("Tile_W");
+        tileObjects[1, 1] = GameObject.Find("Tile_M");
+        tileObjects[1, 2] = GameObject.Find("Tile_E");
+        tileObjects[2, 0] = GameObject.Find("Tile_SW");
+        tileObjects[2, 1] = GameObject.Find("Tile_S");
+        tileObjects[2, 2] = GameObject.Find("Tile_SE");
+    }
+
+    private void HandleNewGame()
+    {
+        _newGame = true;
+        _moveCount = 0;
+        Array.Clear(tiles, 0, 9);
+        hud.SetActive(true);
+        // menu.SetActive(false);
+        endScreen.SetActive(false);
+        UpdateGameState(GameState.XTurn);
+    }
+
     private void HandleOTurn()
     {
         _moveCount++;
-        SwapTextures(xIsRight);
+        SwapTextures(_xIsRight);
     }
 
     private void HandleXTurn()
     {
         _moveCount++;
 
-        if (newGame)  // Randomize which player will play as X
+        if (_newGame)  // Randomize which player will play as X
         {
             Random rnd = new Random();
             var randomResult = rnd.Next(1, 3);
-            xIsRight = randomResult == 1;
-            newGame = false;
+            _xIsRight = randomResult == 1;
+            _newGame = false;
         }
         
-        SwapTextures(xIsRight);
+        SwapTextures(_xIsRight);
     }
 
     private void SwapTextures(bool xSide)
@@ -187,10 +214,17 @@ public class GameManager : MonoBehaviour
 
     private void HandleEndGame()
     {
-        if (_winCondition == 1)
-            Debug.Log(_moveCount % 2 == 1 ? "X Won!" : "O Won!");
-        else
-            Debug.Log("Draw!");
+        string msg = _winCondition == 1 ? 
+            string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? "1" : "2") : 
+            DrawTextMsg;
+        winnerText.text = msg;
+        ShowEndScreen();
+    }
+
+    private void ShowEndScreen()
+    {
+        hud.SetActive(false);
+        endScreen.SetActive(true);
     }
 }
 
@@ -199,5 +233,6 @@ public enum GameState
     Menu,
     XTurn,
     OTurn,
-    EndGame
+    EndGame,
+    NewGame
 }

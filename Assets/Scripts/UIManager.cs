@@ -45,9 +45,9 @@ public class UIManager : MonoBehaviour
         {
             for (var j = 0; j < 3; j++)
             {
-                if (GameManager.instance.tiles[i, j] == 0)
+                if (GameManager.Instance.tiles[i, j] == 0)
                 {
-                    animator = GameManager.instance.tileObjects[i, j].GetComponent<Animator>();
+                    animator = GameManager.Instance.tileObjects[i, j].GetComponent<Animator>();
                     animator.SetBool("Hint", true);
                     StartCoroutine(WaitForHint());
                     exit = true;
@@ -62,5 +62,21 @@ public class UIManager : MonoBehaviour
     {
         yield return new WaitForSeconds(2);
         animator.SetBool("Hint", false);
+    }
+
+    public void OnRestartPress()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            for (var j = 0; j < 3; j++)
+            {
+                if (GameManager.Instance.tiles[i, j] != 0)
+                {
+                    GameManager.Instance.tileObjects[i, j].GetComponent<SpriteRenderer>().sprite = GameManager.Instance.emptyToken;
+                }
+            }
+        }
+        
+        GameManager.Instance.UpdateGameState(GameState.NewGame);
     }
 }

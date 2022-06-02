@@ -20,7 +20,7 @@ public class TileController : MonoBehaviour
 
     private void OnMouseUpAsButton()
     {
-        if (GameManager.instance.gameState != GameState.EndGame)
+        if (GameManager.Instance.gameState != GameState.EndGame)
         {
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2 mousePos2D = new Vector2(mousePos.x, mousePos.y);
@@ -36,31 +36,31 @@ public class TileController : MonoBehaviour
     private void MarkTile(Collider2D tileCollider)
     {
         var (i, j) = GetTileLocation(tileCollider.name);  // get tile's matrix location
-        if (GameManager.instance.tiles[i, j] != 0) return;  // Already marked, do nothing
+        if (GameManager.Instance.tiles[i, j] != 0) return;  // Already marked, do nothing
 
-        var gameState = GameManager.instance.gameState;
+        var gameState = GameManager.Instance.gameState;
         Sprite sprite;
         int mark;
         switch (gameState)
         {
             case GameState.XTurn:
-                sprite = GameManager.instance.xSprite;
+                sprite = GameManager.Instance.xSprite;
                 mark = 1;
                 break;
             case GameState.OTurn:
-                sprite = GameManager.instance.oSprite;
+                sprite = GameManager.Instance.oSprite;
                 mark = -1;
                 break;
             default:
-                sprite = GameManager.instance.emptyToken;
+                sprite = GameManager.Instance.emptyToken;
                 mark = 0;
                 Debug.Log("While marking the tile, the GameState wasn't X or O.");
                 break;
         }
 
         tileCollider.GetComponent<SpriteRenderer>().sprite = sprite;
-        GameManager.instance.tiles[i, j] = mark;
-        GameManager.instance.EndTurn(i, j, mark);
+        GameManager.Instance.tiles[i, j] = mark;
+        GameManager.Instance.EndTurn(i, j, mark);
     }
 
     private static (int i, int j) GetTileLocation(string tileName)

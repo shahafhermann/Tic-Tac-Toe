@@ -14,6 +14,7 @@ public class UIManager : MonoBehaviour
     public GameObject menu;
     public TextMeshProUGUI winnerText;
     public Button undoButton;
+    public GameObject movingPanel;
     public TextMeshProUGUI timerText;
     public SpriteRenderer backgroundObject;
     public Sprite background;

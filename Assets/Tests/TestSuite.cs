@@ -86,10 +86,7 @@ public class TestSuite
         // Reset
         _gameManager.tiles = new int[9];
         ResetMoveCount();
-        
-        // Doesn't matter, just to avoid null exception
-        _buttonController.animator = _gameManager.tileObjects[0].GetComponent<Animator>();
-        
+
         _buttonController.OnHintPress();
         // Check that the hint index is actually available
         //Assert.True(_gameManager.tiles[_buttonController.hintIndex] == 0, "Hint Index is available at: " + _buttonController.hintIndex);

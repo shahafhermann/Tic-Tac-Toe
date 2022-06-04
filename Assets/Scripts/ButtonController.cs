@@ -4,12 +4,24 @@ using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = System.Random;
 
 public class ButtonController : MonoBehaviour
 {
-    public Animator animator;
+    private Animator _hintAnimator;
+    private Animator _settingsAnimator;
 
+    private void Start()
+    {
+        _settingsAnimator = UIManager.Instance.movingPanel.GetComponent<Animator>();
+    }
+
+    public void OnSettingsPress()
+    {
+        _settingsAnimator.SetBool("OpenSettings", true);
+    }
+    
     public void OnReskinPress(TMP_InputField inputPath)
     {
         var assetBundle = AssetBundle.LoadFromFile(Path.Combine(Application.streamingAssetsPath, inputPath.text));
@@ -41,8 +53,12 @@ public class ButtonController : MonoBehaviour
         }
     }
 
-    public void OnBackPress()
+    public void OnBackPress(bool fromSettings = false)
     {
+        if (fromSettings)
+        {
+            _settingsAnimator.SetBool("OpenSettings", false);
+        }
         GameManager.Instance.UpdateGameState(GameState.Menu);
     }
     
@@ -63,15 +79,15 @@ public class ButtonController : MonoBehaviour
         var availableMoves = Enumerable.Range(0, GameManager.Instance.tiles.Length).Where(i => GameManager.Instance.tiles[i] == 0).ToArray();
         var rnd = new Random();
         var hintIndex = rnd.Next(0, availableMoves.Length);
-        animator = GameManager.Instance.tileObjects[availableMoves[hintIndex]].GetComponent<Animator>();
+        _hintAnimator = GameManager.Instance.tileObjects[availableMoves[hintIndex]].GetComponent<Animator>();
         StartCoroutine(WaitForHint());
     }
 
     private IEnumerator WaitForHint()
     {
-        animator.SetBool("Hint", true);
+        _hintAnimator.SetBool("Hint", true);
         yield return new WaitForSeconds(2);
-        animator.SetBool("Hint", false);
+        _hintAnimator.SetBool("Hint", false);
     }
 
     public void OnRestartPress()

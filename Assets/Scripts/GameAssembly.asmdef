@@ -1,6 +1,6 @@
  {
      "name": "GameAssembly",
-     "references": ["Unity.TextMeshPro", "Unity.TextMeshPro.Editor"],
+     "references": ["Unity.TextMeshPro", "Unity.TextMeshPro.Editor", "UnityEditor.UI"],
      "optionalUnityReferences": [],
      "includePlatforms": [],
      "excludePlatforms": [],

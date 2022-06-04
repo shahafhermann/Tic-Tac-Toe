@@ -9,6 +9,7 @@ public class GameManager : MonoBehaviour
 {
     // Singleton, so I can easily grab it from anywhere in the project.
     public static GameManager Instance;
+    public ButtonController bc;
 
     public GameState gameState;
     public Player p1;
@@ -35,18 +36,6 @@ public class GameManager : MonoBehaviour
     private void Awake() 
     {
         Instance = this;
-        // tileObjects = new []
-        // {
-        //     GameObject.Find("Tile_NW"), 
-        //     GameObject.Find("Tile_N"),
-        //     GameObject.Find("Tile_NE"),
-        //     GameObject.Find("Tile_W"),
-        //     GameObject.Find("Tile_M"),
-        //     GameObject.Find("Tile_E"),
-        //     GameObject.Find("Tile_SW"),
-        //     GameObject.Find("Tile_S"),
-        //     GameObject.Find("Tile_SE")
-        // };
     }
     
     private void Start()
@@ -221,7 +210,7 @@ public class GameManager : MonoBehaviour
         return sprite;
     }
     
-    private int GetPlayerMark()
+    public int GetPlayerMark()
     {
         return gameState == GameState.P1Turn ? 1 : -1;
     }

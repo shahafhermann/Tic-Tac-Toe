@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using Random = System.Random;
 
@@ -7,28 +9,26 @@ public class ButtonController : MonoBehaviour
 {
     public Animator animator;
 
-    public void OnPvpPress()
+    public void OnDropDown(TMP_Dropdown dropDown)
     {
-        GameManager.Instance.p1 = Player.Human;
-        GameManager.Instance.p2 = Player.Human;
-        UIManager.Instance.SetPlayers(true, true);
-        OnRestartPress();
-    }
-    
-    public void OnPvcPress()
-    {
-        GameManager.Instance.p1 = Player.Human;
-        GameManager.Instance.p2 = Player.Computer;
-        UIManager.Instance.SetPlayers(true, false);
-        OnRestartPress();
-    }
-    
-    public void OnCvcPress()
-    {
-        GameManager.Instance.p1 = Player.Computer;
-        GameManager.Instance.p2 = Player.Computer;
-        UIManager.Instance.SetPlayers(false, false);
-        OnRestartPress();
+        switch (dropDown.value)
+        {
+            case 0:
+                GameManager.Instance.p1 = Player.Human;
+                GameManager.Instance.p2 = Player.Human;
+                UIManager.Instance.SetPlayers(true, true);
+                break;
+            case 1:
+                GameManager.Instance.p1 = Player.Human;
+                GameManager.Instance.p2 = Player.Computer;
+                UIManager.Instance.SetPlayers(true, false);
+                break;
+            case 2:
+                GameManager.Instance.p1 = Player.Computer;
+                GameManager.Instance.p2 = Player.Computer;
+                UIManager.Instance.SetPlayers(false, false);
+                break;
+        }
     }
 
     public void OnBackPress()
@@ -36,9 +36,12 @@ public class ButtonController : MonoBehaviour
         GameManager.Instance.UpdateGameState(GameState.Menu);
     }
     
+    /*
+     * The instance attribute is used for testing since Unit Tests don't work well with singletons.
+     */
     public void OnUndoPress()
     {
-        if (GameManager.Instance.Undo.Count > 0)  // Sanity check
+        if (GameManager.Instance.GetMoveCount() > 0)  // Sanity check
         {
             GameManager.Instance.EndTurn(undo: true);
         }
@@ -49,8 +52,8 @@ public class ButtonController : MonoBehaviour
         // Give a random tile as hint
         var availableMoves = Enumerable.Range(0, GameManager.Instance.tiles.Length).Where(i => GameManager.Instance.tiles[i] == 0).ToArray();
         var rnd = new Random();
-        var randomIndex = rnd.Next(0, availableMoves.Length);
-        animator = GameManager.Instance.tileObjects[availableMoves[randomIndex]].GetComponent<Animator>();
+        var hintIndex = rnd.Next(0, availableMoves.Length);
+        animator = GameManager.Instance.tileObjects[availableMoves[hintIndex]].GetComponent<Animator>();
         StartCoroutine(WaitForHint());
     }
 

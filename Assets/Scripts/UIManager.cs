@@ -15,6 +15,8 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI winnerText;
     public Button undoButton;
     public TextMeshProUGUI timerText;
+    public SpriteRenderer backgroundObject;
+    public Sprite background;
     public Sprite xSprite;
     public Sprite oSprite;
     public Sprite emptyToken;
@@ -25,6 +27,9 @@ public class UIManager : MonoBehaviour
     public Sprite humanLeft;
     public Sprite computerRight;
     public Sprite computerLeft;
+    public SpriteRenderer bear;
+    public Sprite bearLookLeft;
+    public Sprite bearLookRight;
     
     private SpriteRenderer _p1SpriteRenderer;
     private SpriteRenderer _p2SpriteRenderer;
@@ -59,17 +64,20 @@ public class UIManager : MonoBehaviour
                 endScreen.SetActive(true);
                 break;
             case GameState.Menu:
+                backgroundObject.sprite = background;
                 hud.SetActive(false);
                 menu.SetActive(true);
                 endScreen.SetActive(false);
                 break;
             case GameState.P1Turn:
+                bear.sprite = bearLookRight;
                 if (GameManager.Instance.p1 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
                     undoButton.interactable = false;
                 else
                     undoButton.interactable = true;
                 break;
             case GameState.P2Turn:
+                bear.sprite = bearLookLeft;
                 if (GameManager.Instance.p2 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
                     undoButton.interactable = false;
                 else

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -9,6 +10,15 @@ public class ButtonController : MonoBehaviour
 {
     public Animator animator;
 
+    public void OnReskinPress(TMP_InputField inputPath)
+    {
+        var assetBundle = AssetBundle.LoadFromFile(Path.Combine(Application.streamingAssetsPath, inputPath.text));
+        var assets = assetBundle.LoadAllAssets();
+        UIManager.Instance.xSprite = (Sprite) assets[5];
+        UIManager.Instance.oSprite = (Sprite) assets[3];
+        UIManager.Instance.background = (Sprite) assets[1];
+    }
+    
     public void OnDropDown(TMP_Dropdown dropDown)
     {
         switch (dropDown.value)

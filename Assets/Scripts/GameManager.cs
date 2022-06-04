@@ -17,6 +17,7 @@ public class GameManager : MonoBehaviour
     public Stack Undo = new Stack();
     public int[] tiles = new int[9];
     public SpriteRenderer[] tileObjects;
+    public bool hardMode = false;
     public static event Action<GameState> OnGameStateChange;
 
     private int _moveCount;
@@ -116,15 +117,69 @@ public class GameManager : MonoBehaviour
     private IEnumerator AIMove()
     {
         yield return new WaitForSeconds(aiMoveWaitTime);  // Make the AI wait before playing
+
+        var selectedMove = 0;
         
-        var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
-        var rnd = new Random();
-        var randomIndex = rnd.Next(0, availableMoves.Length);
-        var selectedMove = availableMoves[randomIndex];
+        if (hardMode)
+        {
+            // selectedMove = Minimax(tiles, gameState == GameState.P1Turn ? 1 : 2);
+            // if (selectedMove == -1)
+            // {
+            //     var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
+            //     var rnd = new Random();
+            //     var randomIndex = rnd.Next(0, availableMoves.Length);
+            //     selectedMove = availableMoves[randomIndex];
+            // }
+        }
+        else
+        {
+            var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
+            var rnd = new Random();
+            var randomIndex = rnd.Next(0, availableMoves.Length);
+            selectedMove = availableMoves[randomIndex];
+        }
         
         tileObjects[selectedMove].sprite = GetPlayerSprite();
         EndTurn(move: selectedMove);
     }
+    
+    // private int Minimax(int[] board, int player)
+    // {
+    //     var winCondition = CheckWinCondition(player);
+    //     if (winCondition == player) // The player who passed onto this function is the winner
+    //     {
+    //         return 1;
+    //     }
+    //     if (winCondition == player % 2 + 1) // The other player is the winner
+    //     {
+    //         return -1;
+    //     }
+    //     if (winCondition == -1)
+    //     {
+    //         return 0;
+    //     }
+    //
+    //     var move = -1;
+    //     var score = -2;
+    //
+    //     for (var i = 0; i < 9; i++)  // For all moves
+    //     {
+    //         if (board[i] == 0)  // Only possible moves
+    //         {
+    //             var boardWithNewMove = new int[9];
+    //             board.CopyTo(boardWithNewMove, 0);  // Copy board to not change the original values
+    //             boardWithNewMove[i] = player;  // Try the move
+    //             var scoreForTheMove = -Minimax(boardWithNewMove, player % 2 + 1);  // Count negative score for the opponent
+    //             if (scoreForTheMove > score)  // Picking a move that gives the opponent the worst score
+    //             {
+    //                 score = scoreForTheMove;
+    //                 move = i;
+    //             } 
+    //         }
+    //     }
+    //     
+    //     return move;  // If it's -1 then it's a draw, no best move.
+    // }
 
     public void PlayerMove(Collider2D collider)
     {
@@ -174,7 +229,7 @@ public class GameManager : MonoBehaviour
             (tiles[0] == mark && tiles[4] == mark && tiles[8] == mark) ||
             (tiles[2] == mark && tiles[4] == mark && tiles[6] == mark)) 
         {
-            return 1;
+            return mark == 1 ? 1 : 2;  // Return the winner's number
         }
 
         // Check draw

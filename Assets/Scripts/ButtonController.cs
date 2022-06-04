@@ -1,7 +1,7 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using Random = System.Random;
 
 public class ButtonController : MonoBehaviour
 {
@@ -11,14 +11,24 @@ public class ButtonController : MonoBehaviour
     {
         GameManager.Instance.p1 = Player.Human;
         GameManager.Instance.p2 = Player.Human;
-        GameManager.Instance.UpdateGameState(GameState.NewGame);
+        UIManager.Instance.SetPlayers(true, true);
+        OnRestartPress();
     }
     
     public void OnPvcPress()
     {
         GameManager.Instance.p1 = Player.Human;
         GameManager.Instance.p2 = Player.Computer;
-        GameManager.Instance.UpdateGameState(GameState.NewGame);
+        UIManager.Instance.SetPlayers(true, false);
+        OnRestartPress();
+    }
+    
+    public void OnCvcPress()
+    {
+        GameManager.Instance.p1 = Player.Computer;
+        GameManager.Instance.p2 = Player.Computer;
+        UIManager.Instance.SetPlayers(false, false);
+        OnRestartPress();
     }
 
     public void OnBackPress()
@@ -28,52 +38,32 @@ public class ButtonController : MonoBehaviour
     
     public void OnUndoPress()
     {
-        var (i, j) = (Tuple<int, int>) GameManager.Instance.Undo.Pop();
-        TileController.ClearTile(i, j);
-        GameManager.Instance.UpdateMoveCount(-1);
-        GameManager.Instance.EndTurn(true);
+        if (GameManager.Instance.Undo.Count > 0)  // Sanity check
+        {
+            GameManager.Instance.EndTurn(undo: true);
+        }
     }
 
     public void OnHintPress()
     {
-        // Search for the first empty tile, give it as a hint.
-        var exit = false;
-        for (var i = 0; i < 3; i++)
-        {
-            for (var j = 0; j < 3; j++)
-            {
-                if (GameManager.Instance.tiles[i, j] == 0)
-                {
-                    animator = GameManager.Instance.tileObjects[i, j].GetComponent<Animator>();
-                    animator.SetBool("Hint", true);
-                    StartCoroutine(WaitForHint());
-                    exit = true;
-                }
-                if (exit) break;
-            }
-            if (exit) break;
-        }
+        // Give a random tile as hint
+        var availableMoves = Enumerable.Range(0, GameManager.Instance.tiles.Length).Where(i => GameManager.Instance.tiles[i] == 0).ToArray();
+        var rnd = new Random();
+        var randomIndex = rnd.Next(0, availableMoves.Length);
+        animator = GameManager.Instance.tileObjects[availableMoves[randomIndex]].GetComponent<Animator>();
+        StartCoroutine(WaitForHint());
     }
 
     private IEnumerator WaitForHint()
     {
+        animator.SetBool("Hint", true);
         yield return new WaitForSeconds(2);
         animator.SetBool("Hint", false);
     }
 
     public void OnRestartPress()
     {
-        for (var i = 0; i < 3; i++)
-        {
-            for (var j = 0; j < 3; j++)
-            {
-                if (GameManager.Instance.tiles[i, j] != 0)
-                {
-                    TileController.ClearTile(i, j);
-                }
-            }
-        }
-        
+        TileController.ClearBoard();
         GameManager.Instance.UpdateGameState(GameState.NewGame);
     }
 }

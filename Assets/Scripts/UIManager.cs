@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,12 +6,30 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance;
     
+    private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
+    private const string DrawTextMsg = "Draw";
+    
     public GameObject endScreen;
     public GameObject hud;
     public GameObject menu;
     public TextMeshProUGUI winnerText;
     public Button undoButton;
     public TextMeshProUGUI timerText;
+    public Sprite xSprite;
+    public Sprite oSprite;
+    public Sprite emptyToken;
+    public Sprite xTurnSprite;
+    public Sprite oTurnSprite;
+    public Sprite emptyTurnSprite;
+    public Sprite humanRight;
+    public Sprite humanLeft;
+    public Sprite computerRight;
+    public Sprite computerLeft;
+    
+    private SpriteRenderer _p1SpriteRenderer;
+    private SpriteRenderer _p2SpriteRenderer;
+    private SpriteRenderer _p2TurnTile;
+    private SpriteRenderer _p1TurnTile;
     
     private void Awake()
     {
@@ -34,7 +49,6 @@ public class UIManager : MonoBehaviour
     {
         switch (state)
         {
-            // _hud.SetActive(state == GameState.OTurn || state == GameState.XTurn);
             case GameState.NewGame:
                 hud.SetActive(true);
                 menu.SetActive(false);
@@ -49,35 +63,89 @@ public class UIManager : MonoBehaviour
                 menu.SetActive(true);
                 endScreen.SetActive(false);
                 break;
+            case GameState.P1Turn:
+                if (GameManager.Instance.p1 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
+                    undoButton.interactable = false;
+                else
+                    undoButton.interactable = true;
+                break;
+            case GameState.P2Turn:
+                if (GameManager.Instance.p2 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
+                    undoButton.interactable = false;
+                else
+                    undoButton.interactable = true;
+                break;
         }
     }
 
-    void Update()
+    private void Start()
     {
-        undoButton.interactable = GameManager.Instance.GetMoveCount() > 1;
+        _p2TurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
+        _p1TurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
+        _p1SpriteRenderer = GameObject.Find("Player1").GetComponent<SpriteRenderer>();
+        _p2SpriteRenderer = GameObject.Find("Player2").GetComponent<SpriteRenderer>();
+    }
 
-        if (GameManager.Instance.TimerRunning())
+    private void Update()
+    {
+        // undoButton.interactable = GameManager.Instance.GetMoveCount() > 0;
+
+        if (!GameManager.Instance.TimerRunning()) return;  // If timer isn't running don't do the following.
+        
+        if (GameManager.Instance.GetTimeRemaining() > 0) {
+            GameManager.Instance.UpdateTimeRemaining(Time.deltaTime);
+                
+            if (GameManager.Instance.timer < 0)
+                GameManager.Instance.timer = 0;
+
+            timerText.text = "00:" + Mathf.Ceil(GameManager.Instance.GetTimeRemaining() % 60).ToString("00");
+            timerText.color = GameManager.Instance.GetTimeRemaining() < 3 ? 
+                new Color(1, 0.168f, 0.219f, 1) : 
+                new Color(1, 1, 1, 1);
+        }
+        else
         {
-            if (GameManager.Instance.GetTimeRemaining() > 0) {
-                GameManager.Instance.UpdateTimeRemaining(Time.deltaTime);
+            GameManager.Instance.TimeOut();
                 
-                if (GameManager.Instance.timer < 0)
-                    GameManager.Instance.timer = 0;
+        }
+    }
 
-                timerText.text = "00:" + Mathf.Ceil(GameManager.Instance.GetTimeRemaining() % 60).ToString("00");
-                if (GameManager.Instance.GetTimeRemaining() < 3) {
-                    timerText.color = new Color(1, 0.168f, 0.219f, 1);
-                }
-                else
-                {
-                    timerText.color = new Color(1, 1, 1, 1);
-                }
-            }
-            else
+    public void SwapTextures(int xPlayer)
+    {
+        if (xPlayer == 1)  // Player1 plays X
+        {
+            _p1TurnTile.sprite = GameManager.Instance.gameState == GameState.P1Turn ? xTurnSprite : emptyTurnSprite;
+            _p2TurnTile.sprite = GameManager.Instance.gameState == GameState.P1Turn ? emptyTurnSprite : oTurnSprite;
+        }
+        else  // Player2 plays X
+        {
+            _p1TurnTile.sprite = GameManager.Instance.gameState == GameState.P1Turn ? oTurnSprite : emptyTurnSprite;
+            _p2TurnTile.sprite = GameManager.Instance.gameState == GameState.P1Turn ? emptyTurnSprite : xTurnSprite;
+        }
+    }
+
+    public void SetPlayers(bool is1Human, bool is2Human)
+    {
+        _p1SpriteRenderer.sprite = is1Human ? humanRight : computerRight;
+        _p2SpriteRenderer.sprite = is2Human ? humanLeft : computerLeft;
+    }
+
+    public void SetWinner(bool timeOut = false, int timedOutPlayer = 0, bool draw = false, int xPlayer = 0)
+    {
+        if (timeOut)
+        {
+            winnerText.text = timedOutPlayer switch
             {
-                GameManager.Instance.TimeOut();
-                
-            }
+                1 => string.Format(WinnerTextMsg, 2),
+                2 => string.Format(WinnerTextMsg, 1),
+                _ => DrawTextMsg
+            };
+        }
+        else
+        {
+            winnerText.text = draw ? 
+                DrawTextMsg : 
+                string.Format(WinnerTextMsg, GameManager.Instance.GetMoveCount() % 2 == 1 ? xPlayer : xPlayer % 2 + 1);
         }
     }
 }

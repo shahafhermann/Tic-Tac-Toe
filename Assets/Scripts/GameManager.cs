@@ -1,10 +1,8 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEditor.UI;
+using System.Linq;
+// using UnityEditor.UI;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = System.Random;
 
 public class GameManager : MonoBehaviour 
@@ -16,43 +14,39 @@ public class GameManager : MonoBehaviour
     public Player p1;
     public Player p2;
     public Stack Undo = new Stack();
-    public int[,] tiles = new int[3, 3];
-    public GameObject[,] tileObjects = new GameObject[3, 3];
+    public int[] tiles = new int[9];
+    public SpriteRenderer[] tileObjects;
     public static event Action<GameState> OnGameStateChange;
-    private SpriteRenderer _p2TurnTile;
-    private SpriteRenderer _p1TurnTile;
 
     private int _moveCount;
     private int _winCondition;
-    private GameState _timeOutWinner;
+    private int _timedOutPlayer;
     private int _xPlayer;
     private bool _timerRunning;
     private bool _timeOut;
     private float _timeRemaining;
-    
-    private const string WinnerTextMsg = "Player {0} wins!";  // {0} is replaced by the winning player's number
-    private const string DrawTextMsg = "Draw";
 
     [Header("Setup")] 
     public float timer = 5f;
-    public Sprite xSprite;
-    public Sprite oSprite;
-    public Sprite emptyToken;
-    public Sprite xTurnSprite;
-    public Sprite oTurnSprite;
-    public Sprite emptyTurnSprite;
-    public Sprite human;
-    public Sprite computer;
+    public float aiMoveWaitTime = 0.6f;
     public Sprite background;
-    public ButtonEditor buildAssetBundleButton;
+    // public ButtonEditor buildAssetBundleButton;
 
     private void Awake() 
     {
         Instance = this;
-        
-        SetTileMap();
-        _p2TurnTile = GameObject.Find("TurnTile_L").GetComponent<SpriteRenderer>();
-        _p1TurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
+        // tileObjects = new []
+        // {
+        //     GameObject.Find("Tile_NW"), 
+        //     GameObject.Find("Tile_N"),
+        //     GameObject.Find("Tile_NE"),
+        //     GameObject.Find("Tile_W"),
+        //     GameObject.Find("Tile_M"),
+        //     GameObject.Find("Tile_E"),
+        //     GameObject.Find("Tile_SW"),
+        //     GameObject.Find("Tile_S"),
+        //     GameObject.Find("Tile_SE")
+        // };
     }
     
     private void Start()
@@ -71,11 +65,11 @@ public class GameManager : MonoBehaviour
             case GameState.NewGame:
                 HandleNewGame();
                 break;
-            case GameState.XTurn:
-                SwitchTurn(_xPlayer);
+            case GameState.P1Turn:
+                HandleNewTurn();
                 break;
-            case GameState.OTurn:
-                SwitchTurn(_xPlayer);
+            case GameState.P2Turn:
+                HandleNewTurn();
                 break;
             case GameState.EndGame:
                 HandleEndGame();
@@ -85,19 +79,6 @@ public class GameManager : MonoBehaviour
         }
 
         OnGameStateChange?.Invoke(newState);
-    }
-
-    private void SetTileMap()
-    {
-        tileObjects[0, 0] = GameObject.Find("Tile_NW");
-        tileObjects[0, 1] = GameObject.Find("Tile_N");
-        tileObjects[0, 2] = GameObject.Find("Tile_NE");
-        tileObjects[1, 0] = GameObject.Find("Tile_W");
-        tileObjects[1, 1] = GameObject.Find("Tile_M");
-        tileObjects[1, 2] = GameObject.Find("Tile_E");
-        tileObjects[2, 0] = GameObject.Find("Tile_SW");
-        tileObjects[2, 1] = GameObject.Find("Tile_S");
-        tileObjects[2, 2] = GameObject.Find("Tile_SE");
     }
 
     public void UpdateMoveCount(int step) { _moveCount += step; }
@@ -111,7 +92,7 @@ public class GameManager : MonoBehaviour
     public void TimeOut()
     {
         _timeOut = true;
-        _timeOutWinner = gameState;
+        _timedOutPlayer = gameState == GameState.P1Turn ? 1 : 2;
         UpdateGameState(GameState.EndGame);
     }
 
@@ -128,81 +109,83 @@ public class GameManager : MonoBehaviour
         Random rnd = new Random();
         var randomResult = rnd.Next(1, 3);
         _xPlayer = randomResult;
-        
-        UpdateGameState(GameState.XTurn);
+
+        UpdateGameState(_xPlayer == 1 ? GameState.P1Turn : GameState.P2Turn);
     }
 
-    private void SwitchTurn(int xPlayer)
+    private void HandleNewTurn()
     {
-        _moveCount++;
-        if (xPlayer == 1)  // Player1 plays X
+        UIManager.Instance.SwapTextures(_xPlayer);
+        
+        if ((gameState == GameState.P1Turn && p1 == Player.Computer) ||
+            (gameState == GameState.P2Turn && p2 == Player.Computer))
         {
-            _p2TurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
-            _p1TurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-        }
-        else  // Player2 plays X
-        {
-            _p2TurnTile.sprite = gameState == GameState.XTurn ? xTurnSprite : emptyTurnSprite;
-            _p1TurnTile.sprite = gameState == GameState.XTurn ? emptyTurnSprite : oTurnSprite;
+            StartCoroutine(AIMove());
         }
     }
+    
+    private IEnumerator AIMove()
+    {
+        yield return new WaitForSeconds(aiMoveWaitTime);  // Make the AI wait before playing
+        
+        var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
+        var rnd = new Random();
+        var randomIndex = rnd.Next(0, availableMoves.Length);
+        var selectedMove = availableMoves[randomIndex];
+        
+        tileObjects[selectedMove].sprite = GetPlayerSprite();
+        EndTurn(move: selectedMove);
+    }
 
-    public void EndTurn(bool undo, int i = 0, int j = 0, int mark = 0)
+    public void PlayerMove(Collider2D collider)
+    {
+        var move = TileController.GetTileLocation(collider.name);  // get tile's location in matrix
+        if (tiles[move] != 0) return;  // Already marked, do nothing
+
+        collider.GetComponent<SpriteRenderer>().sprite = GetPlayerSprite();
+        EndTurn(move: move);
+    }
+
+    public void EndTurn(int move = -1, bool undo = false)
     {
         _timeRemaining = timer;
-        _winCondition = CheckWinCondition(i, j, mark);
-        if (_winCondition == 0 || undo)
-            UpdateGameState(gameState == GameState.XTurn ? GameState.OTurn : GameState.XTurn);
-        else // GameState not updated - The game ended
-            UpdateGameState(GameState.EndGame);
+        if (undo)
+        {
+            _moveCount--;
+            var lastMove = (int) Undo.Pop();
+            TileController.ClearTile(lastMove);
+            UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
+        }
+        else
+        {
+            _moveCount++;
+            tiles[move] = GetPlayerMark();
+            Undo.Push(move);
+            _winCondition = CheckWinCondition(GetPlayerMark());
+            if (_winCondition == 0)
+                UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
+            else // GameState not updated - The game ended
+                UpdateGameState(GameState.EndGame);
+        }
     }
     
     /**
      * Check if any player won.
      * Return 1 if a player won, -1 if it's a draw or 0 otherwise (Game hasn't ended)
      */
-    private int CheckWinCondition(int x, int y, int mark)
+    public int CheckWinCondition(int mark)
     {
-        // Check row
-        for (var i = 0; i < 3; i++)
+        // All possibilities for a win
+        if ((tiles[0] == mark && tiles[1] == mark && tiles[2] == mark) ||
+            (tiles[3] == mark && tiles[4] == mark && tiles[5] == mark) ||
+            (tiles[6] == mark && tiles[7] == mark && tiles[8] == mark) ||
+            (tiles[0] == mark && tiles[3] == mark && tiles[6] == mark) ||
+            (tiles[1] == mark && tiles[4] == mark && tiles[7] == mark) ||
+            (tiles[2] == mark && tiles[5] == mark && tiles[8] == mark) ||
+            (tiles[0] == mark && tiles[4] == mark && tiles[8] == mark) ||
+            (tiles[2] == mark && tiles[4] == mark && tiles[6] == mark)) 
         {
-            if (tiles[x, i] != mark) 
-                break;
-            if (i == 2)
-                return 1;
-        }
-        
-        // Check column
-        for (var i = 0; i < 3; i++)
-        {
-            if (tiles[i, y] != mark) 
-                break;
-            if (i == 2)
-                return 1;
-        }
-        
-        // Check diagonal
-        if (x == y) // We're on the diagonal
-        {
-            for (var i = 0; i < 3; i++)
-            {
-                if (tiles[i, i] != mark) 
-                    break;
-                if (i == 2)
-                    return 1;
-            }
-        }
-            
-        // Check anti-diagonal
-        if (x + y == 2) // We're on the anti-diagonal 
-        {
-            for (var i = 0; i < 3; i++)
-            {
-                if (tiles[i, 2 - i] != mark) 
-                    break;
-                if (i == 2)
-                    return 1;
-            }
+            return 1;
         }
 
         // Check draw
@@ -214,41 +197,43 @@ public class GameManager : MonoBehaviour
 
     private void HandleEndGame()
     {
-        var oPlayer = (_xPlayer % 2) + 1;
         if (_timeOut)
         {
-            switch (_timeOutWinner)
-            {
-                case GameState.XTurn:
-                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, oPlayer);
-                    break;
-                case GameState.OTurn:
-                    UIManager.Instance.winnerText.text = string.Format(WinnerTextMsg, _xPlayer);
-                    break;
-                default:
-                    UIManager.Instance.winnerText.text = DrawTextMsg;
-                    break;
-            }
+            UIManager.Instance.SetWinner(timeOut: true, timedOutPlayer:_timedOutPlayer);
         }
         else
         {
-            UIManager.Instance.winnerText.text = _winCondition == 1 ? 
-                string.Format(WinnerTextMsg, _moveCount % 2 == 1 ? _xPlayer : oPlayer) : 
-                DrawTextMsg;
+            UIManager.Instance.SetWinner(draw: _winCondition != 1, xPlayer: _xPlayer);
         }
 
         _timerRunning = false;
+    }
+    
+    private Sprite GetPlayerSprite()
+    {
+        var sprite = gameState switch
+        {
+            GameState.P1Turn => _xPlayer == 1 ? UIManager.Instance.xSprite : UIManager.Instance.oSprite,
+            GameState.P2Turn => _xPlayer == 2 ? UIManager.Instance.xSprite : UIManager.Instance.oSprite,
+            _ => null
+        };
+
+        return sprite;
+    }
+    
+    private int GetPlayerMark()
+    {
+        return gameState == GameState.P1Turn ? 1 : -1;
     }
 }
 
 public enum GameState 
 {
     Menu,
-    XTurn,
-    OTurn,
+    P1Turn,
+    P2Turn,
     EndGame,
-    NewGame,
-    TimeOut
+    NewGame
 }
 
 public enum Player

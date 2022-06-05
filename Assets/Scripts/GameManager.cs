@@ -144,6 +144,9 @@ public class GameManager : MonoBehaviour
         EndTurn(move: selectedMove);
     }
 
+    /*
+     * Choose a random move from the available tiles.
+     */
     private int RandomMove()
     {
         var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
@@ -152,6 +155,9 @@ public class GameManager : MonoBehaviour
         return availableMoves[randomIndex];
     }
 
+    /*
+     * Determine the best move. This method utilizes the Minimax recursive method. (helper function)
+     */
     private int BestMove() 
     {
         // AI to make its turn
@@ -175,6 +181,9 @@ public class GameManager : MonoBehaviour
         return move;
     }
     
+    /*
+     * Minimax algorithm is used to determine the best possible move.
+     */
     private int Minimax(int[] board, int depth, bool isMaximizing) 
     {
         // Base Cases - Board terminal state
@@ -254,7 +263,7 @@ public class GameManager : MonoBehaviour
             tiles[move] = GetPlayerMark();
             Undo.Push(move);
             _winCondition = CheckWinCondition(tiles, GetPlayerMark());
-            if (_winCondition == 0)
+            if (_winCondition == 0)  // Game continues
                 UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
             else // GameState not updated - The game ended
                 UpdateGameState(GameState.EndGame);

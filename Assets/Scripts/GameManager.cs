@@ -300,7 +300,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            UIManager.Instance.SetWinner(draw: _winCondition != 1, xPlayer: _xPlayer);
+            UIManager.Instance.SetWinner(draw: _winCondition == -1, xPlayer: _xPlayer);
         }
 
         _timerRunning = false;

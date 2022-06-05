@@ -2,6 +2,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/*
+ * Singleton class, used for handling all UI-related logic and mechanics. 
+ */
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance;
@@ -15,6 +18,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI winnerText;
     public Button undoButton;
     public GameObject movingPanel;
+    public TMP_Dropdown difficultyDropDown;
     public TextMeshProUGUI timerText;
     public SpriteRenderer backgroundObject;
     public Sprite background;
@@ -93,6 +97,7 @@ public class UIManager : MonoBehaviour
         _p1TurnTile = GameObject.Find("TurnTile_R").GetComponent<SpriteRenderer>();
         _p1SpriteRenderer = GameObject.Find("Player1").GetComponent<SpriteRenderer>();
         _p2SpriteRenderer = GameObject.Find("Player2").GetComponent<SpriteRenderer>();
+        difficultyDropDown.value = 1;
     }
 
     private void Update()

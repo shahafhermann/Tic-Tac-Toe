@@ -1,15 +1,16 @@
 using System;
 using System.Collections;
 using System.Linq;
-// using UnityEditor.UI;
 using UnityEngine;
 using Random = System.Random;
 
+/*
+ * Singleton class, used for handling all game-related logic and mechanics. 
+ */
 public class GameManager : MonoBehaviour 
 {
     // Singleton, so I can easily grab it from anywhere in the project.
     public static GameManager Instance;
-    public ButtonController bc;
 
     public GameState gameState;
     public Player p1;
@@ -17,7 +18,7 @@ public class GameManager : MonoBehaviour
     public Stack Undo = new Stack();
     public int[] tiles = new int[9];
     public SpriteRenderer[] tileObjects;
-    public bool hardMode = false;
+    public bool hardMode = true;
     public static event Action<GameState> OnGameStateChange;
 
     private int _moveCount;
@@ -44,6 +45,9 @@ public class GameManager : MonoBehaviour
         UpdateGameState(GameState.Menu);
     }
 
+    /*
+     * Handle all game state updates.
+     */
     public void UpdateGameState(GameState newState) 
     {
         gameState = newState;
@@ -88,6 +92,9 @@ public class GameManager : MonoBehaviour
 
     public bool TimerRunning() { return _timerRunning; }
 
+    /*
+     * Handle a new game state. Reset all parameters, randomize the X player and let it start.
+     */
     private void HandleNewGame()
     {
         _moveCount = 0;
@@ -103,10 +110,14 @@ public class GameManager : MonoBehaviour
         UpdateGameState(_xPlayer == 1 ? GameState.P1Turn : GameState.P2Turn);
     }
 
+    /*
+     * Handle a new turn
+     */
     private void HandleNewTurn()
     {
         UIManager.Instance.SwapTextures(_xPlayer);
         
+        // Decide if the computer should play now
         if ((gameState == GameState.P1Turn && p1 == Player.Computer) ||
             (gameState == GameState.P2Turn && p2 == Player.Computer))
         {
@@ -118,68 +129,105 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(aiMoveWaitTime);  // Make the AI wait before playing
 
-        var selectedMove = 0;
+        var selectedMove = -1;
         
         if (hardMode)
         {
-            // selectedMove = Minimax(tiles, gameState == GameState.P1Turn ? 1 : 2);
-            // if (selectedMove == -1)
-            // {
-            //     var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
-            //     var rnd = new Random();
-            //     var randomIndex = rnd.Next(0, availableMoves.Length);
-            //     selectedMove = availableMoves[randomIndex];
-            // }
+            selectedMove = BestMove();
         }
-        else
+        if (selectedMove == -1)  // If it's not hard mode or if BestMove() returned -1.
         {
-            var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
-            var rnd = new Random();
-            var randomIndex = rnd.Next(0, availableMoves.Length);
-            selectedMove = availableMoves[randomIndex];
+            selectedMove = RandomMove();
         }
         
         tileObjects[selectedMove].sprite = GetPlayerSprite();
         EndTurn(move: selectedMove);
     }
+
+    private int RandomMove()
+    {
+        var availableMoves = Enumerable.Range(0, tiles.Length).Where(i => tiles[i] == 0).ToArray();
+        var rnd = new Random();
+        var randomIndex = rnd.Next(0, availableMoves.Length);
+        return availableMoves[randomIndex];
+    }
+
+    private int BestMove() 
+    {
+        // AI to make its turn
+        var bestScore = int.MinValue;
+        var move = -1;
+        for (var i = 0; i < 9; i++) 
+        {
+            if (tiles[i] == 0) {  // Is the spot available?
+                tiles[i] = GetPlayerMark();
+                var newBoard = new int[9];
+                tiles.CopyTo(newBoard, 0);
+                var score = Minimax(newBoard, 0, false);
+                tiles[i] = 0;
+                if (score > bestScore) 
+                {
+                    bestScore = score;
+                    move = i;
+                }
+            }
+        }
+        return move;
+    }
     
-    // private int Minimax(int[] board, int player)
-    // {
-    //     var winCondition = CheckWinCondition(player);
-    //     if (winCondition == player) // The player who passed onto this function is the winner
-    //     {
-    //         return 1;
-    //     }
-    //     if (winCondition == player % 2 + 1) // The other player is the winner
-    //     {
-    //         return -1;
-    //     }
-    //     if (winCondition == -1)
-    //     {
-    //         return 0;
-    //     }
-    //
-    //     var move = -1;
-    //     var score = -2;
-    //
-    //     for (var i = 0; i < 9; i++)  // For all moves
-    //     {
-    //         if (board[i] == 0)  // Only possible moves
-    //         {
-    //             var boardWithNewMove = new int[9];
-    //             board.CopyTo(boardWithNewMove, 0);  // Copy board to not change the original values
-    //             boardWithNewMove[i] = player;  // Try the move
-    //             var scoreForTheMove = -Minimax(boardWithNewMove, player % 2 + 1);  // Count negative score for the opponent
-    //             if (scoreForTheMove > score)  // Picking a move that gives the opponent the worst score
-    //             {
-    //                 score = scoreForTheMove;
-    //                 move = i;
-    //             } 
-    //         }
-    //     }
-    //     
-    //     return move;  // If it's -1 then it's a draw, no best move.
-    // }
+    private int Minimax(int[] board, int depth, bool isMaximizing) 
+    {
+        // Base Cases - Board terminal state
+        if (CheckWinCondition(board, GetPlayerMark()) == GetPlayerMark()) // The computer wins in this state
+        {
+            return 10 - depth;
+        }
+        if (CheckWinCondition(board, GetPlayerMark() % 2 + 1) == GetPlayerMark() % 2 + 1) // // The computer doesn't win in this state
+        {
+            return depth - 10;
+        }
+        if (CheckWinCondition(board, GetPlayerMark()) == -1) // draw
+        {
+            return 0;
+        }
+    
+        if (isMaximizing)
+        {  // Computer's move, maximize score
+            var bestScore = int.MinValue;
+            for (var i = 0; i < 9; i++)  // Try all moves
+            {
+                if (board[i] == 0)  // Is the move valid?
+                {
+                    // board[i] = GetPlayerMark();
+                    var newBoard = new int[9];
+                    board.CopyTo(newBoard, 0);  // Create a deep copy of the board to send in to the recursion
+                    newBoard[i] = GetPlayerMark();
+                    var score = Minimax(newBoard, depth + 1, false);
+                    // board[i] = 0;
+                    bestScore = Math.Max(score, bestScore);
+                }
+            }
+            return bestScore;
+        } 
+        else 
+        {  // Player's move, minimize score
+            var bestScore = int.MaxValue;
+            for (var i = 0; i < 9; i++)    // Try all moves
+            {
+                if (board[i] == 0)   // Is the move valid?
+                {
+                    // board[i] = GetPlayerMark() % 2 + 1;
+                    var newBoard = new int[9];
+                    board.CopyTo(newBoard, 0);  // Create a deep copy of the board to send in to the recursion
+                    newBoard[i] = GetPlayerMark() % 2 + 1;
+                    var score = Minimax(newBoard, depth + 1, true);
+                    // board[i] = 0;
+                    bestScore = Math.Min(score, bestScore);
+                }
+            }
+            return bestScore;
+        }
+    }
 
     public void PlayerMove(Collider2D collider)
     {
@@ -205,7 +253,7 @@ public class GameManager : MonoBehaviour
             _moveCount++;
             tiles[move] = GetPlayerMark();
             Undo.Push(move);
-            _winCondition = CheckWinCondition(GetPlayerMark());
+            _winCondition = CheckWinCondition(tiles, GetPlayerMark());
             if (_winCondition == 0)
                 UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
             else // GameState not updated - The game ended
@@ -217,26 +265,31 @@ public class GameManager : MonoBehaviour
      * Check if any player won.
      * Return 1 if a player won, -1 if it's a draw or 0 otherwise (Game hasn't ended)
      */
-    public int CheckWinCondition(int mark)
+    public int CheckWinCondition(int[] board, int mark)
     {
         // All possibilities for a win
-        if ((tiles[0] == mark && tiles[1] == mark && tiles[2] == mark) ||
-            (tiles[3] == mark && tiles[4] == mark && tiles[5] == mark) ||
-            (tiles[6] == mark && tiles[7] == mark && tiles[8] == mark) ||
-            (tiles[0] == mark && tiles[3] == mark && tiles[6] == mark) ||
-            (tiles[1] == mark && tiles[4] == mark && tiles[7] == mark) ||
-            (tiles[2] == mark && tiles[5] == mark && tiles[8] == mark) ||
-            (tiles[0] == mark && tiles[4] == mark && tiles[8] == mark) ||
-            (tiles[2] == mark && tiles[4] == mark && tiles[6] == mark)) 
+        if ((board[0] == mark && board[1] == mark && board[2] == mark) ||
+            (board[3] == mark && board[4] == mark && board[5] == mark) ||
+            (board[6] == mark && board[7] == mark && board[8] == mark) ||
+            (board[0] == mark && board[3] == mark && board[6] == mark) ||
+            (board[1] == mark && board[4] == mark && board[7] == mark) ||
+            (board[2] == mark && board[5] == mark && board[8] == mark) ||
+            (board[0] == mark && board[4] == mark && board[8] == mark) ||
+            (board[2] == mark && board[4] == mark && board[6] == mark)) 
         {
-            return mark == 1 ? 1 : 2;  // Return the winner's number
+            return mark;  // Return the winner's number
         }
 
         // Check draw
-        if(_moveCount == 9)
-            return -1;
-
-        return 0;
+        for (var i = 0; i < 9; i++)
+        {
+            if (board[i] == 0)
+            {
+                return 0;
+            }
+        }
+        
+        return -1;  // Draw
     }
 
     private void HandleEndGame()
@@ -267,7 +320,7 @@ public class GameManager : MonoBehaviour
     
     public int GetPlayerMark()
     {
-        return gameState == GameState.P1Turn ? 1 : -1;
+        return gameState == GameState.P1Turn ? 1 : 2;
     }
 }
 

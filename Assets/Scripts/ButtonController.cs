@@ -7,6 +7,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using Random = System.Random;
 
+/*
+ * A class defining all button functionalities within the game.
+ */
 public class ButtonController : MonoBehaviour
 {
     private Animator _hintAnimator;
@@ -31,7 +34,7 @@ public class ButtonController : MonoBehaviour
         UIManager.Instance.background = (Sprite) assets[1];
     }
     
-    public void OnDropDown(TMP_Dropdown dropDown)
+    public void OnPlayModeDropDown(TMP_Dropdown dropDown)
     {
         switch (dropDown.value)
         {
@@ -51,6 +54,18 @@ public class ButtonController : MonoBehaviour
                 UIManager.Instance.SetPlayers(false, false);
                 break;
         }
+    }
+    
+    public void OnDifficultyDropDown(TMP_Dropdown dropDown)
+    {
+        GameManager.Instance.hardMode = dropDown.value switch
+        {
+            0 => // Dumb
+                false,
+            1 => // Genius
+                true,
+            _ => GameManager.Instance.hardMode  // Default
+        };
     }
 
     public void OnBackPress(bool fromSettings = false)

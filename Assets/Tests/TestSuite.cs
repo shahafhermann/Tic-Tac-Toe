@@ -6,6 +6,15 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
+/*
+ * A test suite to unit test all required units.
+ * Currently only the win condition test is working, due to the fact that it only uses a single Singleton
+ * object (GameManager).
+ * The rest of the tests require both an instanced class (ButtonController) as well as the GameManager Singleton,
+ * which as far as I know isn't possible.
+ * I learned this when the project was almost done heavily relies on the Singleton design pattern,
+ * and too late for me to change the design.
+ */
 public class TestSuite
 {
     private GameObject _testObject;
@@ -46,17 +55,17 @@ public class TestSuite
 
         // Inject a still going game board
         _gameManager.tiles = _tileSetupNotDone;
-        var res = _gameManager.CheckWinCondition(1);  // Mark doesn't matter here
+        var res = _gameManager.CheckWinCondition(_gameManager.tiles, 1);  // Mark doesn't matter here
         Assert.True(res == 0, "Still playing, expected 0, got " + res);
         
         // Inject a board where p1 wins
         _gameManager.tiles = _tileSetup1Win;
-        res = _gameManager.CheckWinCondition(1);
+        res = _gameManager.CheckWinCondition(_gameManager.tiles, 1);
         Assert.True(res == 1, "P1 Won, expected 1, got " + res);
         
         // Inject a board where p2 wins
         _gameManager.tiles = _tileSetup2Win;
-        res = _gameManager.CheckWinCondition(2);
+        res = _gameManager.CheckWinCondition(_gameManager.tiles, 2);
         Assert.True(res == 1, "P2 Won, expected 1, got " + res);
         
         // Check draw. Draw relies on the move count rather than board state, so simulate a game.
@@ -71,7 +80,7 @@ public class TestSuite
         _gameManager.EndTurn(move: 6);
         _gameManager.EndTurn(move: 7);
         _gameManager.EndTurn(move: 8);
-        res = _gameManager.CheckWinCondition(1);  // Mark doesn't matter here
+        res = _gameManager.CheckWinCondition(_gameManager.tiles, 1);  // Mark doesn't matter here
         Assert.True(res == -1, "Draw, expected -1, got " + res);
     }
 

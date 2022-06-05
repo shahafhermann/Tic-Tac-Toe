@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/*
+ * A class defining all tile (where the X and O goes) functionalities within the game.
+ */
 public class TileController : MonoBehaviour
 {
     private void OnMouseUpAsButton()

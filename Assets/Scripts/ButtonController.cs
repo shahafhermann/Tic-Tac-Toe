@@ -100,9 +100,9 @@ public class ButtonController : MonoBehaviour
     public void OnUndoPress()
     {
         AudioManager.Instance.Play("Click1");
-        if (GameManager.Instance.GetMoveCount() > 0)  // Sanity check
+        if (GameManager.Instance.Undo.Count > 0)  // Sanity check
         {
-            GameManager.Instance.EndTurn(undo: true);
+            GameManager.Instance.UndoTurn();
         }
     }
 

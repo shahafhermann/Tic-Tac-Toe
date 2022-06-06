@@ -76,17 +76,9 @@ public class UIManager : MonoBehaviour
                 break;
             case GameState.P1Turn:
                 bear.sprite = bearLookRight;
-                if (GameManager.Instance.p1 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
-                    undoButton.interactable = false;
-                else
-                    undoButton.interactable = true;
                 break;
             case GameState.P2Turn:
                 bear.sprite = bearLookLeft;
-                if (GameManager.Instance.p2 == Player.Computer || GameManager.Instance.GetMoveCount() == 0)
-                    undoButton.interactable = false;
-                else
-                    undoButton.interactable = true;
                 break;
         }
     }

@@ -71,15 +71,15 @@ public class TestSuite
         // Check draw. Draw relies on the move count rather than board state, so simulate a game.
         _gameManager.tiles = new int[9];
         ResetMoveCount();
-        _gameManager.EndTurn(move: 1);
-        _gameManager.EndTurn(move: 0);
-        _gameManager.EndTurn(move: 3);
-        _gameManager.EndTurn(move: 2);
-        _gameManager.EndTurn(move: 4);
-        _gameManager.EndTurn(move: 5);
-        _gameManager.EndTurn(move: 6);
-        _gameManager.EndTurn(move: 7);
-        _gameManager.EndTurn(move: 8);
+        _gameManager.EndTurn(1);
+        _gameManager.EndTurn(0);
+        _gameManager.EndTurn(3);
+        _gameManager.EndTurn(2);
+        _gameManager.EndTurn(4);
+        _gameManager.EndTurn(5);
+        _gameManager.EndTurn(6);
+        _gameManager.EndTurn(7);
+        _gameManager.EndTurn(8);
         res = _gameManager.CheckWinCondition(_gameManager.tiles, 1);  // Mark doesn't matter here
         Assert.True(res == -1, "Draw, expected -1, got " + res);
     }
@@ -153,7 +153,7 @@ public class TestSuite
         else
         {
             _simBoard[move] = _gameManager.GetPlayerMark();
-            _gameManager.EndTurn(move: move);
+            _gameManager.EndTurn(move);
             moves.Push(move);
         }
     }

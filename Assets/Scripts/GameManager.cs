@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     // Singleton, so I can easily grab it from anywhere in the project.
     public static GameManager Instance;
 
+    public const float AIThinkTime = 0.6f;
     public GameState gameState;
     public Player p1;
     public Player p2;
@@ -121,10 +122,16 @@ public class GameManager : MonoBehaviour
         if ((gameState == GameState.P1Turn && p1 == Player.Computer) ||
             (gameState == GameState.P2Turn && p2 == Player.Computer))
         {
+            UIManager.Instance.undoButton.interactable = false;
             StartCoroutine(AIMove());
+            // AIMove();
+        }
+        else
+        {
+            UIManager.Instance.undoButton.interactable = true;
         }
     }
-    
+
     private IEnumerator AIMove()
     {
         yield return new WaitForSeconds(aiMoveWaitTime);  // Make the AI wait before playing
@@ -141,7 +148,7 @@ public class GameManager : MonoBehaviour
         }
         
         tileObjects[selectedMove].sprite = GetPlayerSprite();
-        EndTurn(move: selectedMove);
+        EndTurn(selectedMove);
     }
 
     /*
@@ -244,30 +251,48 @@ public class GameManager : MonoBehaviour
         if (tiles[move] != 0) return;  // Already marked, do nothing
 
         collider.GetComponent<SpriteRenderer>().sprite = GetPlayerSprite();
-        EndTurn(move: move);
+        EndTurn(move);
     }
 
-    public void EndTurn(int move = -1, bool undo = false)
+    private void UndoHelper(int undoTimes)
     {
-        _timeRemaining = timer;
-        if (undo)
+        _moveCount -= undoTimes;
+        for (var i = 0; i < undoTimes; i++)
         {
-            _moveCount--;
             var lastMove = (int) Undo.Pop();
             TileController.ClearTile(lastMove);
-            UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
+        }
+    }
+
+    public void UndoTurn()
+    {
+        _timeRemaining = timer;
+        
+        if ((gameState == GameState.P1Turn && p2 == Player.Computer || 
+            gameState == GameState.P2Turn && p1 == Player.Computer) && 
+            _moveCount > 1)
+        {
+            UndoHelper(2);
         }
         else
         {
-            _moveCount++;
-            tiles[move] = GetPlayerMark();
-            Undo.Push(move);
-            _winCondition = CheckWinCondition(tiles, GetPlayerMark());
-            if (_winCondition == 0)  // Game continues
-                UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
-            else // GameState not updated - The game ended
-                UpdateGameState(GameState.EndGame);
+            UndoHelper(1);
+            UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
         }
+
+    }
+
+    public void EndTurn(int move = -1)
+    {
+        _timeRemaining = timer;
+        _moveCount++;
+        tiles[move] = GetPlayerMark();
+        Undo.Push(move);
+        _winCondition = CheckWinCondition(tiles, GetPlayerMark());
+        if (_winCondition == 0)  // Game continues
+            UpdateGameState(gameState == GameState.P1Turn ? GameState.P2Turn : GameState.P1Turn);
+        else // GameState not updated - The game ended
+            UpdateGameState(GameState.EndGame);
     }
     
     /**
